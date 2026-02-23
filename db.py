@@ -212,7 +212,7 @@ class _SQLiteBackend:
 
 
 # ---------------------------------------------------------------------------
-# Postgres backend
+# Postgres backend (supports psycopg2 or psycopg3)
 # ---------------------------------------------------------------------------
 
 try:
@@ -224,18 +224,37 @@ except ImportError:
     pg_extras = None  # type: ignore
     pg_errors = None  # type: ignore
 
+try:
+    import psycopg
+    from psycopg.rows import dict_row as pg3_dict_row
+except ImportError:
+    psycopg = None  # type: ignore
+    pg3_dict_row = None  # type: ignore
+
 
 class _PostgresBackend:
     """PostgreSQL (Supabase) implementation of the Truth table operations."""
 
     def __init__(self, database_url: str) -> None:
-        if not psycopg2:
-            raise ImportError("psycopg2 is required when DATABASE_URL is set. Install with: pip install psycopg2-binary")
-        try:
-            self.conn = psycopg2.connect(database_url)
-        except Exception as e:
-            logger.exception("Failed to connect to PostgreSQL. Check DATABASE_URL and network.")
-            raise
+        self._pg3 = False
+        if psycopg2 is not None:
+            try:
+                self.conn = psycopg2.connect(database_url)
+            except Exception:
+                logger.exception("Failed to connect to PostgreSQL. Check DATABASE_URL and network.")
+                raise
+        elif psycopg is not None and pg3_dict_row is not None:
+            try:
+                self.conn = psycopg.connect(database_url)
+                self._pg3 = True
+            except Exception:
+                logger.exception("Failed to connect to PostgreSQL. Check DATABASE_URL and network.")
+                raise
+        else:
+            raise ImportError(
+                "A PostgreSQL driver is required when DATABASE_URL is set. "
+                "Install one of: pip install psycopg2-binary  OR  pip install 'psycopg[binary]'"
+            )
         self.column_cache: set = set()
         self.initialize_schema()
         self._load_column_cache()
@@ -243,7 +262,10 @@ class _PostgresBackend:
 
     @contextmanager
     def get_cursor(self):
-        cursor = self.conn.cursor(cursor_factory=pg_extras.RealDictCursor)
+        if self._pg3:
+            cursor = self.conn.cursor(row_factory=pg3_dict_row)
+        else:
+            cursor = self.conn.cursor(cursor_factory=pg_extras.RealDictCursor)
         try:
             yield cursor
             self.conn.commit()

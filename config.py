@@ -6,10 +6,13 @@ Loads settings from environment variables with sensible defaults.
 import os
 from dataclasses import dataclass
 from typing import Optional
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # python-dotenv not installed (e.g. minimal container); rely on env vars from platform
+    pass
 
 
 @dataclass

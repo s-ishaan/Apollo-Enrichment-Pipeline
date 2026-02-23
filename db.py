@@ -253,7 +253,8 @@ class _PostgresBackend:
         else:
             raise ImportError(
                 "A PostgreSQL driver is required when DATABASE_URL is set. "
-                "Install one of: pip install psycopg2-binary  OR  pip install 'psycopg[binary]'"
+                "Install: pip install psycopg2-binary. "
+                "On Streamlit Cloud: ensure requirements.txt in your app directory includes 'psycopg2-binary' and that the app uses that directory (not a subfolder without it)."
             )
         self.column_cache: set = set()
         self.initialize_schema()

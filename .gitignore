@@ -60,6 +60,11 @@ htmlcov/
 temp/
 tmp/
 
+# Node / Next.js
+node_modules/
+.next/
+*.tsbuildinfo
+
 # Excel Files (optional - uncomment if you don't want to commit uploaded files)
 # *.xlsx
 # *.xls

@@ -14,7 +14,8 @@ import pandas as pd
 from config import BASE_COLUMNS, config
 from utils import get_utc_timestamp, setup_logging
 
-logger = setup_logging(config.LOG_LEVEL, config.LOG_FILE, config.LOG_TO_CONSOLE)
+logger = setup_logging(config.LOG_LEVEL, config.LOG_FILE,
+                       config.LOG_TO_CONSOLE)
 
 # Column that must never be overwritten on update (always keep existing value).
 EMAIL_SEND_COLUMN = "Email Send (Yes/No)"
@@ -75,7 +76,8 @@ class _SQLiteBackend:
         column_definitions = []
         for col in BASE_COLUMNS:
             if col == "S.N.":
-                column_definitions.append(f'"{col}" INTEGER PRIMARY KEY AUTOINCREMENT')
+                column_definitions.append(
+                    f'"{col}" INTEGER PRIMARY KEY AUTOINCREMENT')
             elif col == "Email ID (unique)":
                 column_definitions.append(f'"{col}" TEXT UNIQUE NOT NULL')
             elif col == "UPDATE AS ON":
@@ -85,9 +87,12 @@ class _SQLiteBackend:
         create_table_sql = f"CREATE TABLE IF NOT EXISTS Truth ({', '.join(column_definitions)})"
         with self.get_cursor() as cursor:
             cursor.execute(create_table_sql)
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_email ON Truth("Email ID (unique)")')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_company ON Truth("Company Name (Based on Website Domain)")')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_updated ON Truth("UPDATE AS ON")')
+            cursor.execute(
+                'CREATE INDEX IF NOT EXISTS idx_email ON Truth("Email ID (unique)")')
+            cursor.execute(
+                'CREATE INDEX IF NOT EXISTS idx_company ON Truth("Company Name (Based on Website Domain)")')
+            cursor.execute(
+                'CREATE INDEX IF NOT EXISTS idx_updated ON Truth("UPDATE AS ON")')
         logger.info("Database schema initialized with base columns")
 
     def _load_column_cache(self) -> None:
@@ -97,13 +102,15 @@ class _SQLiteBackend:
         logger.debug(f"Loaded {len(self.column_cache)} columns into cache")
 
     def ensure_apollo_columns(self, column_names: List[str]) -> None:
-        new_columns = [col for col in column_names if col not in self.column_cache]
+        new_columns = [
+            col for col in column_names if col not in self.column_cache]
         if new_columns:
             logger.info(f"Adding {len(new_columns)} new Apollo columns")
             with self.get_cursor() as cursor:
                 for col in new_columns:
                     try:
-                        cursor.execute(f'ALTER TABLE Truth ADD COLUMN {_quote_identifier(col)} TEXT')
+                        cursor.execute(
+                            f'ALTER TABLE Truth ADD COLUMN {_quote_identifier(col)} TEXT')
                         self.column_cache.add(col)
                         logger.debug(f"Added column: {col}")
                     except sqlite3.OperationalError as e:
@@ -149,7 +156,8 @@ class _SQLiteBackend:
         if apollo_columns:
             self.ensure_apollo_columns(apollo_columns)
         update_cols = [col for col in record.keys() if col != "S.N."]
-        set_clause = ", ".join(f"{_quote_identifier(col)} = ?" for col in update_cols)
+        set_clause = ", ".join(
+            f"{_quote_identifier(col)} = ?" for col in update_cols)
         values = [record[col] for col in update_cols]
         sql = f'UPDATE Truth SET {set_clause} WHERE {_quote_identifier("S.N.")} = ?'
         values.append(sn)
@@ -182,7 +190,8 @@ class _SQLiteBackend:
             cursor.execute(query_sql, params)
             rows = cursor.fetchall()
             records = [dict(row) for row in rows]
-        logger.debug(f"Search returned {len(records)} records (total: {total_count}, offset: {offset})")
+        logger.debug(
+            f"Search returned {len(records)} records (total: {total_count}, offset: {offset})")
         return records, total_count
 
     def get_column_list(self) -> List[str]:
@@ -194,9 +203,11 @@ class _SQLiteBackend:
         with self.get_cursor() as cursor:
             cursor.execute("SELECT COUNT(*) FROM Truth")
             total_records = cursor.fetchone()[0]
-            cursor.execute('SELECT "Lead Source", COUNT(*) FROM Truth GROUP BY "Lead Source"')
+            cursor.execute(
+                'SELECT "Lead Source", COUNT(*) FROM Truth GROUP BY "Lead Source"')
             by_source = dict(cursor.fetchall())
-            cursor.execute('SELECT COUNT(*) FROM Truth WHERE "UPDATE AS ON" >= datetime("now", "-7 days")')
+            cursor.execute(
+                'SELECT COUNT(*) FROM Truth WHERE "UPDATE AS ON" >= datetime("now", "-7 days")')
             recent_updates = cursor.fetchone()[0]
         return {
             "total_records": total_records,
@@ -246,14 +257,16 @@ class _PostgresBackend:
             try:
                 self.conn = psycopg2.connect(database_url)
             except Exception:
-                logger.exception("Failed to connect to PostgreSQL. Check DATABASE_URL and network.")
+                logger.exception(
+                    "Failed to connect to PostgreSQL. Check DATABASE_URL and network.")
                 raise
         elif psycopg is not None and pg3_dict_row is not None:
             try:
                 self.conn = psycopg.connect(database_url)
                 self._pg3 = True
             except Exception:
-                logger.exception("Failed to connect to PostgreSQL. Check DATABASE_URL and network.")
+                logger.exception(
+                    "Failed to connect to PostgreSQL. Check DATABASE_URL and network.")
                 raise
         else:
             parts = [
@@ -303,9 +316,12 @@ class _PostgresBackend:
         create_table_sql = f'CREATE TABLE IF NOT EXISTS "Truth" ({", ".join(column_definitions)})'
         with self.get_cursor() as cursor:
             cursor.execute(create_table_sql)
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_email ON "Truth"("Email ID (unique)")')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_company ON "Truth"("Company Name (Based on Website Domain)")')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_updated ON "Truth"("UPDATE AS ON")')
+            cursor.execute(
+                'CREATE INDEX IF NOT EXISTS idx_email ON "Truth"("Email ID (unique)")')
+            cursor.execute(
+                'CREATE INDEX IF NOT EXISTS idx_company ON "Truth"("Company Name (Based on Website Domain)")')
+            cursor.execute(
+                'CREATE INDEX IF NOT EXISTS idx_updated ON "Truth"("UPDATE AS ON")')
         logger.info("Database schema initialized with base columns")
 
     def _load_column_cache(self) -> None:
@@ -314,17 +330,20 @@ class _PostgresBackend:
                 "SELECT column_name FROM information_schema.columns "
                 "WHERE table_schema = 'public' AND table_name = 'Truth' ORDER BY ordinal_position"
             )
-            self.column_cache = {row["column_name"] for row in cursor.fetchall()}
+            self.column_cache = {row["column_name"]
+                                 for row in cursor.fetchall()}
         logger.debug(f"Loaded {len(self.column_cache)} columns into cache")
 
     def ensure_apollo_columns(self, column_names: List[str]) -> None:
-        new_columns = [col for col in column_names if col not in self.column_cache]
+        new_columns = [
+            col for col in column_names if col not in self.column_cache]
         if new_columns:
             logger.info(f"Adding {len(new_columns)} new Apollo columns")
             with self.get_cursor() as cursor:
                 for col in new_columns:
                     try:
-                        cursor.execute(f'ALTER TABLE "Truth" ADD COLUMN {_quote_identifier(col)} TEXT')
+                        cursor.execute(
+                            f'ALTER TABLE "Truth" ADD COLUMN {_quote_identifier(col)} TEXT')
                         self.column_cache.add(col)
                         logger.debug(f"Added column: {col}")
                     except Exception as e:
@@ -371,7 +390,8 @@ class _PostgresBackend:
         if apollo_columns:
             self.ensure_apollo_columns(apollo_columns)
         update_cols = [col for col in record.keys() if col != "S.N."]
-        set_clause = ", ".join(f"{_quote_identifier(col)} = %s" for col in update_cols)
+        set_clause = ", ".join(
+            f"{_quote_identifier(col)} = %s" for col in update_cols)
         values = [record[col] for col in update_cols]
         sql = f'UPDATE "Truth" SET {set_clause} WHERE {_quote_identifier("S.N.")} = %s'
         values.append(sn)
@@ -404,7 +424,8 @@ class _PostgresBackend:
             cursor.execute(query_sql, params)
             rows = cursor.fetchall()
             records = [dict(row) for row in rows]
-        logger.debug(f"Search returned {len(records)} records (total: {total_count}, offset: {offset})")
+        logger.debug(
+            f"Search returned {len(records)} records (total: {total_count}, offset: {offset})")
         return records, total_count
 
     def get_column_list(self) -> List[str]:
@@ -419,8 +440,10 @@ class _PostgresBackend:
         with self.get_cursor() as cursor:
             cursor.execute('SELECT COUNT(*) AS cnt FROM "Truth"')
             total_records = cursor.fetchone()["cnt"]
-            cursor.execute('SELECT "Lead Source", COUNT(*) FROM "Truth" GROUP BY "Lead Source"')
-            by_source = {row["Lead Source"]: row["count"] for row in cursor.fetchall()}
+            cursor.execute(
+                'SELECT "Lead Source", COUNT(*) FROM "Truth" GROUP BY "Lead Source"')
+            by_source = {row["Lead Source"]: row["count"]
+                         for row in cursor.fetchall()}
             cursor.execute(
                 "SELECT COUNT(*) AS cnt FROM \"Truth\" "
                 "WHERE \"UPDATE AS ON\" >= to_char((CURRENT_TIMESTAMP AT TIME ZONE 'UTC' - INTERVAL '7 days'), 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')"
@@ -555,7 +578,8 @@ class DatabaseManager:
             except Exception as e:
                 logger.error(f"Failed to upsert record {i}: {e}")
                 stats["failed"] += 1
-                stats["failed_records"].append({"email": email, "error": str(e)})
+                stats["failed_records"].append(
+                    {"email": email, "error": str(e)})
                 sns.append(-1)
         logger.info(
             f"Batch upsert complete: {stats['inserted']} inserted, "

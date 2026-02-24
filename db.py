@@ -215,21 +215,26 @@ class _SQLiteBackend:
 # Postgres backend (supports psycopg2 or psycopg3)
 # ---------------------------------------------------------------------------
 
+_psycopg2_err: Optional[Exception] = None
+_psycopg_err: Optional[Exception] = None
+
 try:
     import psycopg2
     from psycopg2 import extras as pg_extras
     from psycopg2 import errors as pg_errors
-except ImportError:
+except ImportError as e:
     psycopg2 = None  # type: ignore
     pg_extras = None  # type: ignore
     pg_errors = None  # type: ignore
+    _psycopg2_err = e
 
 try:
     import psycopg
     from psycopg.rows import dict_row as pg3_dict_row
-except ImportError:
+except ImportError as e:
     psycopg = None  # type: ignore
     pg3_dict_row = None  # type: ignore
+    _psycopg_err = e
 
 
 class _PostgresBackend:
@@ -251,11 +256,18 @@ class _PostgresBackend:
                 logger.exception("Failed to connect to PostgreSQL. Check DATABASE_URL and network.")
                 raise
         else:
-            raise ImportError(
+            parts = [
                 "A PostgreSQL driver is required when DATABASE_URL is set. "
-                "Install: pip install psycopg2-binary. "
-                "On Streamlit Cloud: ensure requirements.txt in your app directory includes 'psycopg2-binary' and that the app uses that directory (not a subfolder without it)."
+                "Install: pip install psycopg2-binary",
+            ]
+            if _psycopg2_err is not None:
+                parts.append(f" (psycopg2 import failed: {_psycopg2_err})")
+            if _psycopg_err is not None:
+                parts.append(f" (psycopg import failed: {_psycopg_err})")
+            parts.append(
+                ". On Streamlit Cloud: put requirements.txt in the same directory as your app entrypoint (e.g. app.py) and include: psycopg2-binary>=2.9.0"
             )
+            raise ImportError("".join(parts))
         self.column_cache: set = set()
         self.initialize_schema()
         self._load_column_cache()

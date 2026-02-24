@@ -17,7 +17,8 @@ from ingest import ExcelIngestor, process_scrape
 from utils import setup_logging, mask_pii
 
 # Setup logging
-logger = setup_logging(config.LOG_LEVEL, config.LOG_FILE, config.LOG_TO_CONSOLE)
+logger = setup_logging(config.LOG_LEVEL, config.LOG_FILE,
+                       config.LOG_TO_CONSOLE)
 
 # Page configuration
 st.set_page_config(
@@ -199,7 +200,8 @@ def render_upload_page():
         if st.button("🚀 Start Enrichment", type="primary", use_container_width=True):
             st.session_state._pending_upload_bytes = uploaded_file.getvalue()
             st.session_state._pending_upload_name = (
-                os.path.basename(uploaded_file.name) if uploaded_file.name else "upload.xlsx"
+                os.path.basename(
+                    uploaded_file.name) if uploaded_file.name else "upload.xlsx"
             )
             st.session_state._pending_enrich_people = enrich_people
             st.session_state._pending_enrich_companies = enrich_companies
@@ -243,7 +245,8 @@ def _render_upload_success(
     with col3:
         st.metric("Updated Records", results.get("updates", 0))
     with col4:
-        st.metric("Failed", results.get("failed", 0))  # only DB upsert failures
+        # only DB upsert failures
+        st.metric("Failed", results.get("failed", 0))
 
     if enrich_people or enrich_companies:
         col5, col6 = st.columns(2)
@@ -258,7 +261,8 @@ def _render_upload_success(
 
     org_skipped = results.get("org_enrichment_skipped_no_domain", 0)
     if org_skipped > 0 and enrich_companies:
-        st.caption(f"Company enrichment skipped (no website): {org_skipped} row(s)")
+        st.caption(
+            f"Company enrichment skipped (no website): {org_skipped} row(s)")
 
     updated_emails = results.get("updated_emails", [])
     if updated_emails:
@@ -276,7 +280,8 @@ def _render_upload_success(
     if failed_records:
         with st.expander(f"⚠️ Failed to save ({len(failed_records)})", expanded=True):
             for item in failed_records:
-                st.error(f"**{mask_pii(item.get('email', ''))}**: {item.get('error', 'Unknown error')}")
+                st.error(
+                    f"**{mask_pii(item.get('email', ''))}**: {item.get('error', 'Unknown error')}")
 
     if results.get("errors"):
         with st.expander("⚠️ Errors Encountered", expanded=False):
@@ -361,7 +366,8 @@ def run_enrichment_pipeline(
             try:
                 os.unlink(tmp_file_path)
             except OSError as cleanup_err:
-                logger.warning("Failed to remove temp file %s: %s", tmp_file_path, cleanup_err)
+                logger.warning("Failed to remove temp file %s: %s",
+                               tmp_file_path, cleanup_err)
 
 
 def _render_scrape_success(
@@ -401,12 +407,14 @@ def _render_scrape_success(
                     " ".join(
                         filter(
                             None,
-                            [rec.get("First Name", ""), rec.get("Last Name", "")],
+                            [rec.get("First Name", ""),
+                             rec.get("Last Name", "")],
                         )
                     ).strip()
                     or "—"
                 )
-                org = (rec.get("Company Name (Based on Website Domain)") or "").strip() or "—"
+                org = (rec.get("Company Name (Based on Website Domain)")
+                       or "").strip() or "—"
                 st.text(f"• {name} — {org}")
 
     skipped = results.get("skipped_no_email", 0)
@@ -418,17 +426,20 @@ def _render_scrape_success(
                 for rec in skipped_records:
                     name = (
                         " ".join(
-                            filter(None, [rec.get("First Name", ""), rec.get("Last Name", "")])
+                            filter(
+                                None, [rec.get("First Name", ""), rec.get("Last Name", "")])
                         ).strip()
                         or "—"
                     )
-                    org = (rec.get("Company Name (Based on Website Domain)") or "").strip() or "—"
+                    org = (rec.get("Company Name (Based on Website Domain)")
+                           or "").strip() or "—"
                     st.text(f"• {name} — {org}")
 
     if results.get("errors"):
         with st.expander("⚠️ Errors Encountered", expanded=False):
             for err in results["errors"]:
-                st.error(f"**{err.get('email', 'N/A')}**: {err.get('message', '')}")
+                st.error(
+                    f"**{err.get('email', 'N/A')}**: {err.get('message', '')}")
 
 
 def _run_scrape_and_show_results(url: str, enrich_people: bool, enrich_companies: bool):
@@ -680,7 +691,8 @@ def upload_base_data(uploaded_file):
             try:
                 os.unlink(tmp_file_path)
             except OSError as cleanup_err:
-                logger.warning("Failed to remove temp file %s: %s", tmp_file_path, cleanup_err)
+                logger.warning("Failed to remove temp file %s: %s",
+                               tmp_file_path, cleanup_err)
 
 
 def render_database_page():
@@ -880,8 +892,10 @@ def render_database_page():
             df = pd.DataFrame(records)
 
             # Reorder columns: base columns first, then Apollo columns
-            base_cols = [col for col in df.columns if not col.startswith("Apollo")]
-            apollo_cols = sorted([col for col in df.columns if col.startswith("Apollo")])
+            base_cols = [
+                col for col in df.columns if not col.startswith("Apollo")]
+            apollo_cols = sorted(
+                [col for col in df.columns if col.startswith("Apollo")])
             ordered_cols = base_cols + apollo_cols
 
             df = df[ordered_cols]
@@ -907,7 +921,6 @@ def render_database_page():
         with st.expander("📋 Column Information"):
             columns = db.get_column_list()
 
-            # Separate base and Apollo columns
             base_cols = [c for c in columns if not c.startswith("Apollo")]
             apollo_cols = [c for c in columns if c.startswith("Apollo")]
 
@@ -916,19 +929,31 @@ def render_database_page():
             with col1:
                 st.markdown("**Base Columns:**")
                 st.write(f"Total: {len(base_cols)}")
-                with st.expander("View all base columns"):
-                    for col in base_cols:
-                        st.text(f"• {col}")
+                if base_cols:
+                    st.text_area(
+                        "Base columns",
+                        value="\n".join(f"• {c}" for c in base_cols),
+                        height=min(200, 24 * len(base_cols) + 10),
+                        disabled=True,
+                        label_visibility="collapsed",
+                        key="base_cols_display_2",
+                    )
 
             with col2:
                 st.markdown("**Apollo Columns:**")
                 st.write(f"Total: {len(apollo_cols)}")
                 if apollo_cols:
-                    with st.expander("View all Apollo columns"):
-                        for col in apollo_cols:
-                            st.text(f"• {col}")
+                    st.text_area(
+                        "Apollo columns",
+                        value="\n".join(f"• {c}" for c in apollo_cols),
+                        height=min(200, 24 * len(apollo_cols) + 10),
+                        disabled=True,
+                        label_visibility="collapsed",
+                        key="apollo_cols_display_2",
+                    )
                 else:
-                    st.info("No Apollo columns yet. Upload and enrich data to add them.")
+                    st.info(
+                        "No Apollo columns yet. Upload and enrich data to add them.")
 
     except Exception as e:
         st.error(f"Failed to fetch records: {e}")

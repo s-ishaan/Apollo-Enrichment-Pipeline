@@ -303,19 +303,26 @@ class _PostgresBackend:
             cursor.close()
 
     def initialize_schema(self) -> None:
+        seq_name = '"Truth_S.N._seq"'
         column_definitions = []
         for col in BASE_COLUMNS:
             if col == "S.N.":
-                column_definitions.append(f'"{col}" SERIAL PRIMARY KEY')
+                column_definitions.append(
+                    f'"S.N." INTEGER PRIMARY KEY DEFAULT nextval(\'{seq_name}\')'
+                )
             elif col == "Email ID (unique)":
                 column_definitions.append(f'"{col}" TEXT UNIQUE NOT NULL')
             elif col == "UPDATE AS ON":
                 column_definitions.append(f'"{col}" TEXT NOT NULL')
             else:
                 column_definitions.append(f'"{col}" TEXT')
-        create_table_sql = f'CREATE TABLE IF NOT EXISTS "Truth" ({", ".join(column_definitions)})'
         with self.get_cursor() as cursor:
+            cursor.execute(f"CREATE SEQUENCE IF NOT EXISTS {seq_name}")
+            create_table_sql = f'CREATE TABLE IF NOT EXISTS "Truth" ({", ".join(column_definitions)})'
             cursor.execute(create_table_sql)
+            cursor.execute(
+                f'ALTER SEQUENCE {seq_name} OWNED BY "Truth"."S.N."'
+            )
             cursor.execute(
                 'CREATE INDEX IF NOT EXISTS idx_email ON "Truth"("Email ID (unique)")')
             cursor.execute(

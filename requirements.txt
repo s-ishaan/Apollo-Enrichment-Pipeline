@@ -1,5 +1,7 @@
-# Web Framework
-streamlit==1.31.0
+# API (FastAPI backend)
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+python-multipart>=0.0.9
 
 # Data Processing
 pandas==2.2.0
@@ -14,8 +16,7 @@ openai>=1.0.0
 # Configuration
 python-dotenv==1.0.1
 
-# PostgreSQL (required when DATABASE_URL is set, e.g. Supabase on Streamlit Cloud)
-# Use psycopg2-binary for best compatibility with Streamlit Cloud / Linux.
+# PostgreSQL (required when DATABASE_URL is set, e.g. Supabase)
 psycopg2-binary>=2.9.0
 
 # Testing (optional, for development)

@@ -49,9 +49,6 @@ apollo_pipeline.log
 *~
 .DS_Store
 
-# Streamlit
-.streamlit/
-
 # Test Coverage
 .coverage
 htmlcov/

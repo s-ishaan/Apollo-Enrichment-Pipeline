@@ -54,12 +54,6 @@ class Config:
     LOG_TO_CONSOLE: bool = os.getenv(
         "LOG_TO_CONSOLE", "true").lower() == "true"
 
-    # UI Configuration
-    STREAMLIT_PAGE_TITLE: str = os.getenv(
-        "STREAMLIT_PAGE_TITLE", "Apollo Enrichment Pipeline")
-    PAGE_SIZE_DEFAULT: int = int(os.getenv("PAGE_SIZE_DEFAULT", "50"))
-    ENABLE_EXPORT: bool = os.getenv("ENABLE_EXPORT", "true").lower() == "true"
-
     # Apify (AI extractor for website scraping; token only required when using Scrape website)
     APIFY_API_TOKEN: str = os.getenv("APIFY_API_TOKEN", "")
     APIFY_AI_EXTRACTOR_ACTOR_ID: str = os.getenv(
